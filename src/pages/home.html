@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title></title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script type="module" src="/main.js" defer></script>
+        <link href="/styles.css" rel="stylesheet">
+        <link href="/spinner.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="lds-ripple-container">
+            <div class="lds-ripple"><div></div><div></div></div>
+        </div>
+        <div class="new-account-bg">
+            <div class="new-account-container">
+                <img id="img-btn-close" src="/assets/close_FILL0_wght400_GRAD0_opsz24.svg">
+                <input type="text" id="new-account-username" name="username" value="" placeholder="username">
+                <br />
+                <input type="text" id="new-account-link" name="link" value="" placeholder="link">
+                <br />
+                <input type="password" id="new-account-password" name="password" value="" placeholder="password">
+                <br />
+                <button id="bt-new-account">Save</button>
+            </div>
+        </div>
+        <div class="header">
+            <div class="more-option-container">
+                <img id="more-option" class="img-btn" src="/assets/more_vert_FILL0_wght400_GRAD0_opsz24.svg" alt="more-option">
+                <ul class="more-option-list">
+                    <li id="opt-delete">Delete</li>
+                    <li id="opt-append">Append</li>
+                </ul>
+            </div>
+            <span id="cancel"> Cancel </span>
+            <img id="add" class="img-btn margin-auto-left" src="/assets/add_FILL0_wght400_GRAD0_opsz24-white.svg" alt="add">
+            <button id="save"> Save </button>
+        </div>
+        <table>
+            <tr>
+                <th>Username</th>
+                <th>Link</th>
+                <th>Password</th>
+            </tr>
+        </table>
+    </body>
+</html>

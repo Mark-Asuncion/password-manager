@@ -209,7 +209,7 @@ EVENTS.table.append_select = async() => {
         title: "Select a Account File (csv)",
         filters: [{
             name: "CSV document",
-            extensions: ["csv"]
+            extensions: ["csv", "*"]
         }]
     });
     return selected;

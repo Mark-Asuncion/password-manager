@@ -29,7 +29,7 @@ pub fn encrypt(key: &[u8], iv: &[u8], data: &String) -> Result<String, ErrorStac
     let block_size = Cipher::aes_128_cbc().block_size();
     let mut out = vec![0; data.len() + block_size];
     let mut count = crypter.update(data.as_bytes(), &mut out)?;
-    count += crypter.finalize(&mut out)?;
+    count += crypter.finalize(&mut out[count..])?;
     out.truncate(count);
     Ok(base64::encode_block(out.as_slice()))
 }
@@ -40,7 +40,7 @@ pub fn decrypt(key: &[u8], iv: &[u8], data_b64: &String) -> Result<String, Error
     let block_size = Cipher::aes_128_cbc().block_size();
     let mut out = vec![0; data.len() + block_size];
     let mut count = crypter.update(data.as_slice(), &mut out)?;
-    count += crypter.finalize(&mut out)?;
+    count += crypter.finalize(&mut out[count..])?;
     out.truncate(count);
     Ok(std::str::from_utf8(out.as_slice()).unwrap().to_string())
 }

@@ -104,7 +104,7 @@ pub fn backup(path_file: &Path, where_to: &Path) -> io::Result<()> {
         let to = where_to.join(name);
         to
     };
-    println!("backup():: from {:?} to {:?}", path_file, to);
+    // println!("backup():: from {:?} to {:?}", path_file, to);
     fs::copy(path_file, to)?;
     _limit_backup(where_to)?;
     Ok(())
@@ -187,12 +187,7 @@ pub fn write_csv(path_file: &Path, records: &[Account], key: &[u8], iv: &[u8]) -
             s.push(constants::D_BACKUP_ACCOUNT);
             s
         };
-        if key.is_empty() {
-            backup(path_file, bak_dir.as_path()).unwrap_or(());
-        }
-        else {
-            _backup_account(key, iv, path_file, bak_dir.as_path());
-        }
+        _backup_account(key, iv, path_file, bak_dir.as_path());
     }
 
     let mut writer = _open_csv_writer(path_file)?;

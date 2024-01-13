@@ -18,7 +18,7 @@ pub fn create_key() -> String {
     if path.exists() && path.is_file() {
         return errors::json_error("file already exists");
     }
-    println!("create_key():: Creating Key");
+    // println!("create_key():: Creating Key");
     let key: Vec<u8>;
     let iv: Vec<u8>;
     match m_openssl::gen_random_bytes() {
@@ -58,7 +58,7 @@ pub fn load_key() -> String {
     dialog::FileDialogBuilder::new()
         .set_title("Choose A key file")
         .pick_file(|file_path| {
-            println!("load_key():: {:?}", file_path.clone().unwrap_or(PathBuf::new()));
+            // println!("load_key():: {:?}", file_path.clone().unwrap_or(PathBuf::new()));
 
             if let None = file_path {
                 return;
@@ -97,62 +97,6 @@ pub fn load_key() -> String {
             }
             else {
                 if let  Err(e) = fs::copy(file_path.as_path(), f_key_path.as_path()) {
-                    errors::show_error(e.to_string().as_str());
-                };
-            }
-        });
-    r#"{"ok":true}"#.to_string()
-}
-
-#[tauri::command]
-pub fn load_accounts() -> String {
-
-    dialog::FileDialogBuilder::new()
-        .set_title("Account File (csv)")
-        .add_filter("CSV document", &[ "csv" ])
-        .pick_file(|file_path| {
-            println!("load_accounts():: {:?}", file_path.clone().unwrap_or(PathBuf::new()));
-
-            if let None = file_path {
-                return;
-            }
-
-            let file_path = file_path.unwrap();
-            let f_acc_path = {
-                let mut f = file::udata_path().unwrap();
-                f.push(file::constants::F_ACCOUNT);
-                f
-            };
-
-            if file_path == f_acc_path { return; }
-            if f_acc_path.exists() {
-                dialog::MessageDialogBuilder::new("Confirm", "A Account file already exists, do you want to overwrite it?")
-                    .kind(dialog::MessageDialogKind::Info)
-                    .buttons(dialog::MessageDialogButtons::YesNo)
-                    .show(|option| {
-                        if !option { return }
-                        let file_path = file_path;
-                        let f_acc_path = f_acc_path;
-
-                        let p_bak = {
-                            let mut p_bak = file::udata_path().unwrap();
-                            p_bak.push(file::constants::D_BACKUP);
-                            p_bak.push(file::constants::D_BACKUP_ACCOUNT);
-                            p_bak
-                        };
-
-                        if let Err(e) = file::backup(f_acc_path.as_path(), p_bak.as_path()) {
-                            errors::show_error(e.to_string().as_str());
-                            return;
-                        }
-                        if let  Err(e) = fs::copy(file_path.as_path(), f_acc_path.as_path()) {
-                            errors::show_error(e.to_string().as_str());
-                            return;
-                        }
-                    });
-            }
-            else {
-                if let  Err(e) = fs::copy(file_path.as_path(), f_acc_path.as_path()) {
                     errors::show_error(e.to_string().as_str());
                 };
             }
@@ -251,7 +195,7 @@ pub fn get_accounts() -> String {
 
 #[tauri::command]
 pub fn update_account(row: usize, key: String, val: String) {
-    println!("update_account:: {} {} {}", row, key ,val);
+    // println!("update_account:: {} {} {}", row, key ,val);
     unsafe {
         let val = val.trim().to_string();
         if let Some(account) = ACCOUNTS.get_mut(row) {
@@ -300,7 +244,7 @@ pub fn add_account(username: String, link: String, password: String) -> String {
                 accounts.push(
                     Account::new(username.as_str(),link.as_str(),v.as_str())
                 );
-                println!("add_account():: {:?}", accounts.last().unwrap());
+                // println!("add_account():: {:?}", accounts.last().unwrap());
                 let res = serde_json::json!({
                     "username": accounts.last().unwrap().username,
                     "link": accounts.last().unwrap().link,
@@ -323,26 +267,12 @@ pub fn add_account(username: String, link: String, password: String) -> String {
 }
 
 #[tauri::command]
-pub fn get_pass(row: usize) -> String {
-    unsafe {
-        let accounts = &ACCOUNTS;
-        let account = accounts.get(row).unwrap();
-        match account.get_pass_decrypted(&KEY_N_IV.0, &KEY_N_IV.1) {
-            Err(e) => {
-                errors::show_error(e.as_str());
-                return errors::json_error(e.as_str());
-            },
-            Ok(v) => format!("{{\"password\":\"{}\"}}", v),
-        }
-    }
-}
-
-#[tauri::command]
 pub fn remove_account(row: usize) {
     unsafe {
         assert!(row < ACCOUNTS.len());
+        #[allow(unused_variables)]
         let removed = ACCOUNTS.remove(row);
-        println!("remove_account:: {:?}", removed);
+        // println!("remove_account:: {:?}", removed);
     }
 }
 

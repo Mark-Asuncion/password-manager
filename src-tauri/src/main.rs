@@ -16,12 +16,10 @@ fn main() {
             frontend::load_key,
             frontend::skip_setup_page,
             frontend::load_runtime,
-            frontend::load_accounts,
             frontend::get_accounts,
             frontend::update_account,
             frontend::save_accounts,
             frontend::add_account,
-            frontend::get_pass,
             frontend::remove_account,
             frontend::append_account
         ])

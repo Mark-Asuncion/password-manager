@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::sync::Mutex;
 mod tests;
 mod file;
 mod m_openssl;
@@ -11,6 +12,10 @@ mod frontend;
 
 fn main() {
     tauri::Builder::default()
+        .manage(global::Global{
+            key_iv: Mutex::new(Default::default()),
+            accounts: Mutex::new(Default::default())
+        })
         .invoke_handler(tauri::generate_handler![
             frontend::create_key,
             frontend::load_key,

@@ -1,14 +1,14 @@
 use crate::file;
 use crate::m_openssl;
 use crate::errors;
-use crate::global::ACCOUNTS;
-use crate::global::KEY_N_IV;
+use crate::global::Global;
 use crate::account::Account;
 use serde_json;
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 use tauri::api::dialog;
+use tauri::State;
 
 #[tauri::command]
 pub fn create_key() -> String {
@@ -52,7 +52,7 @@ pub fn create_key() -> String {
 #[tauri::command]
 pub fn load_key() -> String {
     let confirm_dialog = dialog::MessageDialogBuilder::new("Confirm", "A key already exists, do you want to overwrite it?")
-        .kind(dialog::MessageDialogKind::Info)
+        .kind(dialog::MessageDialogKind::Warning)
         .buttons(dialog::MessageDialogButtons::YesNo);
 
     dialog::FileDialogBuilder::new()
@@ -113,7 +113,7 @@ pub fn skip_setup_page() -> bool {
 }
 
 #[tauri::command]
-pub fn load_runtime() -> String {
+pub fn load_runtime(state: State<Global>) -> String {
     let f_key = {
         let mut f = file::udata_path().unwrap();
         f.push(file::constants::F_KEY);
@@ -121,13 +121,13 @@ pub fn load_runtime() -> String {
     };
     match file::open(f_key.as_path()) {
         Ok(mut v) => {
-            unsafe {
-                KEY_N_IV = m_openssl::open_key(&mut v);
-                if KEY_N_IV.0.is_empty() {
-                    errors::show_error("key is empty");
-                    return errors::json_error("key is empty");
-                }
+            let keyiv = m_openssl::open_key(&mut v);
+            if keyiv.0.is_empty() {
+                errors::show_error("key is empty");
+                return errors::json_error("key is empty");
             }
+            *state.key_iv.lock()
+                .expect(errors::mutex_lock_error("key and iv").as_str()) = keyiv;
         },
         Err(e) => {
             errors::show_error(e.to_string().as_str());
@@ -141,9 +141,9 @@ pub fn load_runtime() -> String {
         f
     };
     match file::read_csv(f_acc.as_path()) {
-        Ok(v) => {
-            unsafe {
-                ACCOUNTS = v;
+        Ok(mut v) => {
+            if let Ok(mut acc) = state.accounts.lock() {
+                (*acc).append(&mut v);
             }
         }
         Err(e) => {
@@ -155,147 +155,143 @@ pub fn load_runtime() -> String {
 }
 
 #[tauri::command]
-pub fn get_accounts() -> String {
-    unsafe {
-        let accounts = &ACCOUNTS;
-        let mut ret: Vec<serde_json::Value> = vec![];
-        for account in accounts {
-            match account.get_pass_decrypted(&KEY_N_IV.0, &KEY_N_IV.1) {
-                Ok(pass) => {
-                    let j = serde_json::json!({
-                    "username": account.username,
-                    "link": account.link,
-                    "password": pass
-                    });
-                    ret.push(j);
-                },
-                Err(e) => {
-                    errors::show_error(format!("Cannot decrypt password of \"{}\'\n{}", &account.username,e).as_str());
-                    let j = serde_json::json!({
-                    "username": account.username,
-                    "link": account.link,
-                    "password": account.password
-                    });
-                    ret.push(j);
-                }
-            }
-        }
-        match serde_json::to_string(&ret) {
-            Ok(v) => {
-                // println!("{}", v);
-                return v;
+pub fn get_accounts(state: State<Global>) -> String {
+    let accounts = &*state.accounts.lock().expect(errors::mutex_lock_error("accounts").as_str());
+    let key_iv = &*state.key_iv.lock().expect(errors::mutex_lock_error("key and iv").as_str());
+    let mut ret: Vec<serde_json::Value> = vec![];
+    for account in accounts {
+        match account.get_pass_decrypted(&key_iv.0, &key_iv.1) {
+            Ok(pass) => {
+                let j = serde_json::json!({
+                "username": account.username,
+                "link": account.link,
+                "password": pass
+                });
+                ret.push(j);
             },
             Err(e) => {
-                errors::show_error(e.to_string().as_str());
-                return errors::json_error(e.to_string().as_str());
+                errors::show_error(format!("Cannot decrypt password of \"{}\'\n{}", &account.username,e).as_str());
+                let j = serde_json::json!({
+                "username": account.username,
+                "link": account.link,
+                "password": account.password
+                });
+                ret.push(j);
             }
         }
     }
-}
-
-#[tauri::command]
-pub fn update_account(row: usize, key: String, val: String) {
-    // println!("update_account:: {} {} {}", row, key ,val);
-    unsafe {
-        let val = val.trim().to_string();
-        if let Some(account) = ACCOUNTS.get_mut(row) {
-            match key.as_str() {
-                "username" => account.username = val,
-                "link" => account.link = val,
-                "password" => {
-                    match m_openssl::encrypt(&KEY_N_IV.0, &KEY_N_IV.1, &val) {
-                        Ok(v) => account.password = v,
-                        Err(e) => errors::show_error(e.to_string().as_str())
-                    }
-                },
-                _ => {}
-            }
-        }
-    }
-}
-
-#[tauri::command]
-pub fn save_accounts() {
-    unsafe {
-        let accounts = &ACCOUNTS;
-        let mut s = file::udata_path().unwrap();
-        s.push(file::constants::F_ACCOUNT);
-
-        if let Err(e) = file::write_csv(
-            s.as_path(),
-            accounts.as_slice(),
-            &KEY_N_IV.0,
-            &KEY_N_IV.1
-        ) {
+    match serde_json::to_string(&ret) {
+        Ok(v) => {
+            // println!("{}", v);
+            return v;
+        },
+        Err(e) => {
             errors::show_error(e.to_string().as_str());
+            return errors::json_error(e.to_string().as_str());
         }
     }
 }
 
 #[tauri::command]
-pub fn add_account(username: String, link: String, password: String) -> String {
+pub fn update_account(row: usize, key: String, val: String,state: State<Global>) {
+    // println!("update_account:: {} {} {}", row, key ,val);
+    let val = val.trim().to_string();
+    let accounts = &mut *state.accounts.lock().expect(errors::mutex_lock_error("accounts").as_str());
+    if let Some(account) = accounts.get_mut(row) {
+        match key.as_str() {
+            "username" => account.username = val,
+            "link" => account.link = val,
+            "password" => {
+                let key_iv = &*state.key_iv.lock().expect(errors::mutex_lock_error("key and iv").as_str());
+                match m_openssl::encrypt(&key_iv.0, &key_iv.1, &val) {
+                    Ok(v) => account.password = v,
+                    Err(e) => errors::show_error(e.to_string().as_str())
+                }
+            },
+            _ => {}
+        }
+    }
+}
+
+#[tauri::command]
+pub fn save_accounts(state: State<Global>) {
+    let accounts = &*state.accounts.lock().expect(errors::mutex_lock_error("accounts").as_str());
+    let key_iv = &*state.key_iv.lock().expect(errors::mutex_lock_error("key and iv").as_str());
+    let mut s = file::udata_path().unwrap();
+    s.push(file::constants::F_ACCOUNT);
+
+    if let Err(e) = file::write_csv(
+        s.as_path(),
+        accounts.as_slice(),
+        &key_iv.0,
+        &key_iv.1
+    ) {
+        errors::show_error(e.to_string().as_str());
+    }
+}
+
+#[tauri::command]
+pub fn add_account(username: String, link: String, password: String, state: State<Global>) -> String {
     if username.is_empty() || password.is_empty() {
         return r#"{"error":"username or password is empty"}"#.to_string();
     }
-    unsafe {
-        let accounts = &mut ACCOUNTS;
-        match m_openssl::encrypt(&KEY_N_IV.0, &KEY_N_IV.1, &password) {
-            Ok(v) => {
-                accounts.push(
-                    Account::new(username.as_str(),link.as_str(),v.as_str())
-                );
-                // println!("add_account():: {:?}", accounts.last().unwrap());
-                let res = serde_json::json!({
-                    "username": accounts.last().unwrap().username,
-                    "link": accounts.last().unwrap().link,
-                    "password": password
-                });
-                match serde_json::to_string(&res) {
-                    Ok(v) => return v,
-                    Err(e) => {
-                        errors::show_error(e.to_string().as_str());
-                        return errors::json_error(e.to_string().as_str());
-                    }
+    let accounts = &mut *state.accounts.lock().expect(errors::mutex_lock_error("accounts").as_str());
+    let key_iv = &*state.key_iv.lock().expect(errors::mutex_lock_error("key and iv").as_str());
+    match m_openssl::encrypt(&key_iv.0, &key_iv.1, &password) {
+        Ok(v) => {
+            accounts.push(
+                Account::new(username.as_str(),link.as_str(),v.as_str())
+            );
+            // println!("add_account():: {:?}", accounts.last().unwrap());
+            let res = serde_json::json!({
+            "username": accounts.last().unwrap().username,
+            "link": accounts.last().unwrap().link,
+            "password": password
+            });
+            match serde_json::to_string(&res) {
+                Ok(v) => return v,
+                Err(e) => {
+                    errors::show_error(e.to_string().as_str());
+                    return errors::json_error(e.to_string().as_str());
                 }
-            },
-            Err(e) => {
-                errors::show_error(e.to_string().as_str());
-                return errors::json_error(e.to_string().as_str());
             }
+        },
+        Err(e) => {
+            errors::show_error(e.to_string().as_str());
+            return errors::json_error(e.to_string().as_str());
         }
     }
 }
 
 #[tauri::command]
-pub fn remove_account(row: usize) {
-    unsafe {
-        assert!(row < ACCOUNTS.len());
-        #[allow(unused_variables)]
-        let removed = ACCOUNTS.remove(row);
-        // println!("remove_account:: {:?}", removed);
-    }
+pub fn remove_account(row: usize, state: State<Global>) {
+    let accounts = &mut *state.accounts.lock().expect(errors::mutex_lock_error("accounts").as_str());
+    assert!(row < accounts.len());
+    #[allow(unused_variables)]
+    let removed = accounts.remove(row);
+    dbg!(removed);
 }
 
 #[tauri::command]
-pub fn append_account(path: String) -> String {
+pub fn append_account(path: String, state: State<Global>) -> String {
     let file_path = PathBuf::from(path);
     if let Ok(v) = file::read_csv(file_path.as_path()) {
         let mut res: Vec<Account> = vec![];
-        unsafe {
-            for mut acc in v {
-                let pass = acc.password.clone();
-                match m_openssl::encrypt(&KEY_N_IV.0, &KEY_N_IV.1, &pass) {
-                    Err(e) => errors::show_error(e.to_string().as_str()),
-                    Ok(v) => {
-                        acc.password = v;
-                    }
+        for mut acc in v {
+            let pass = acc.password.clone();
+            let key_iv = &*state.key_iv.lock().expect(errors::mutex_lock_error("key and iv").as_str());
+            match m_openssl::encrypt(&key_iv.0, &key_iv.1, &pass) {
+                Err(e) => errors::show_error(e.to_string().as_str()),
+                Ok(v) => {
+                    acc.password = v;
                 }
-                res.push(acc);
             }
-            if !res.is_empty() {
-                ACCOUNTS.append(&mut res);
-            }
+            res.push(acc);
+        }
+        if !res.is_empty() {
+            let accounts = &mut *state.accounts.lock().expect(errors::mutex_lock_error("accounts").as_str());
+            accounts.append(&mut res);
         }
     }
-    return get_accounts();
+    get_accounts(state)
 }

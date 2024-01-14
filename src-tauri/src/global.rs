@@ -1,4 +1,8 @@
 use crate::account::Account;
+use std::sync::Mutex;
 
-pub static mut KEY_N_IV: (Vec<u8>, Vec<u8>) = (vec![], vec![]);
-pub static mut ACCOUNTS: Vec<Account> = vec![];
+#[derive(Debug)]
+pub struct Global {
+    pub key_iv: Mutex<(Vec<u8>, Vec<u8>)>,
+    pub accounts: Mutex<Vec<Account>>
+}

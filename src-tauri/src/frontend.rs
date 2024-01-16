@@ -142,9 +142,8 @@ pub fn load_runtime(state: State<Global>) -> String {
     };
     match file::read_csv(f_acc.as_path()) {
         Ok(mut v) => {
-            if let Ok(mut acc) = state.accounts.lock() {
-                (*acc).append(&mut v);
-            }
+            let acc = &mut *state.accounts.lock().expect(errors::mutex_lock_error("accounts").as_str());
+            acc.append(&mut v);
         }
         Err(e) => {
             errors::show_error(e.to_string().as_str());

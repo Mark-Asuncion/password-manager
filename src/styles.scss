@@ -1,0 +1,16 @@
+$input-placeholder-color: white;
+$dark: #2e2e2e;
+@import "~bootstrap/scss/bootstrap";
+@import "~bootstrap/scss/variables";
+body {
+    background-color: $dark;
+    color: white;
+}
+
+input {
+    border-color: map-get($theme-colors, "secondary") !important;
+}
+
+thead {
+    text-align: center;
+}

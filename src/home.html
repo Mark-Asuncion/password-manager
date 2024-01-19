@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title></title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script type="module" src="./scripts/home.ts" defer></script>
+        <link href="./styles.scss" rel="stylesheet">
+        <link href="./css/spinner.css" rel="stylesheet">
+        <!-- <script> </script> -->
+        <script type="module">
+                import * as bootstrap from 'bootstrap'
+        </script>
+    </head>
+    <body>
+        <div class="lds-ripple-container">
+            <div class="lds-ripple"><div></div><div></div></div>
+        </div>
+        <div id="modal-add" class="modal fade" tabindex="-1" role="dialog"
+            aria-labelledby="Add Account" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content bg-dark">
+                    <div class="modal-header">
+                        <h1 class="modal-title">Add Account</h1>
+                    </div>
+                    <div class="modal-body">
+                        <input class="form-control bg-dark text-light m-2 mx-auto"
+                            type="text" id="new-account-username" name="username" value="" placeholder="username">
+                        <input class="form-control bg-dark text-light m-2 mx-auto"
+                            type="text" id="new-account-link" name="link" value="" placeholder="link">
+                        <input class="form-control bg-dark text-light m-2 mx-auto"
+                            type="password" id="new-account-password" name="password" value="" placeholder="password">
+                    </div>
+                    <div class="modal-footer">
+                        <button id="bt-new-account" class="btn btn-success">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <nav class="navbar m-3 mx-auto" style="width: 90%;">
+            <div class="nav-item">
+                <div class="dropdown" role="group">
+                    <button id="more-option" class="btn btn-secondary"
+                        alt="more-option" data-bs-toggle='dropdown'
+                        aria-haspopup="true" aria-expanded="false">
+                        <img src="/assets/more_vert_FILL0_wght400_GRAD0_opsz24.svg">
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <button id="opt-append" class="dropdown-item">Append</button>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-item ml-auto mr-0">
+                <div class="btn-group" role="group">
+                    <button id="add" data-bs-toggle="modal" data-bs-target="#modal-add" class="btn btn-secondary ml-auto">
+                        <img src="/assets/add_FILL0_wght400_GRAD0_opsz24-white.svg" alt="add">
+                    </button>
+                    <button id="save" class="btn btn-secondary"> Save </button>
+                </div>
+            </div>
+        </nav>
+
+        <table class="table table-dark mx-auto" style="width: 90%;">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Link</th>
+                    <th>Password</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </body>
+</html>

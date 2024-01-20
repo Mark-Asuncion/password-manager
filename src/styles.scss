@@ -1,7 +1,7 @@
 $input-placeholder-color: white;
 $dark: #2e2e2e;
 @import "~bootstrap/scss/bootstrap";
-@import "~bootstrap/scss/variables";
+@import "~bootstrap/scss/_variables";
 body {
     background-color: $dark;
     color: white;
@@ -13,4 +13,13 @@ input {
 
 thead {
     text-align: center;
+}
+
+.shortcut-key {
+    background-color: $gray-300;
+    color: $secondary;
+}
+
+#btn-close.btn-outline-secondary {
+    --bs-btn-hover-bg: #{$gray-300};
 }

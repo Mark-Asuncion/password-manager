@@ -85,7 +85,6 @@ window.addEventListener("DOMContentLoaded", () => {
         const res = JSON.parse(v);
         if (res.error !== undefined) {
             console.error(res.error);
-            ;
         }
         const acc = await get_accounts();
         if (acc != null)

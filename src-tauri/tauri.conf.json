@@ -7,8 +7,8 @@
     "withGlobalTauri": true
   },
   "package": {
-    "productName": "pwd-manager",
-    "version": "0.0.0"
+    "productName": "Password Manager",
+    "version": "0.1.0"
   },
   "tauri": {
     "allowlist": {
@@ -43,7 +43,7 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "pwd-manager",
+        "title": "Password Manager",
         "width": 1200,
         "height": 720
       }

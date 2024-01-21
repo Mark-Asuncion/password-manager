@@ -298,3 +298,24 @@ pub fn append_account(path: String, state: State<Global>) {
         }
     }
 }
+
+#[tauri::command]
+pub fn search(val: String, state: State<Global> ) -> String {
+    let accs = & *state.accounts.lock().expect("accounts");
+    let mut ret = vec![];
+    dbg!(&val);
+    for (i, acc) in accs.iter().enumerate() {
+        if acc.is_match(&val) {
+            let key_iv = &*state.key_iv.lock().expect(errors::mutex_lock_error("key and iv").as_str());
+            match acc.as_json_decrypted(i, &key_iv.0, &key_iv.1) {
+                Ok(v) => {
+                    ret.push(v);
+                },
+                Err(e) => {
+                    errors::show_error(e.as_str());
+                }
+            }
+        }
+    }
+    serde_json::to_string(&ret).unwrap_or_default()
+}

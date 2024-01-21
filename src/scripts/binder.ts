@@ -5,7 +5,6 @@ export interface Account {
     username: string,
     link: string,
     password: string
-    error?: string,
 }
 
 export async function create_key() {
@@ -79,15 +78,14 @@ export async function add_account(username: string,
             link: link,
             password: password
         }) as string;
-        const acc = JSON.parse(res) as Account;
+        const acc = JSON.parse(res);
         if (acc.error !== undefined) return null;
-        return acc
+        return acc as Account
     }
     catch (e) {
         console.error(e);
         return null;
     }
-    return null;
 }
 
 export async function remove_account(id: number) {
@@ -106,5 +104,18 @@ export async function append_account(path: string) {
     catch (e) {
         console.error(e);
         return [];
+    }
+}
+
+export async function search(val: string): Promise<[Account] | null> {
+    try {
+        const res: string = await invoke("search", { val: val });
+        if (res.length === 0) return null;
+        const acc = JSON.parse(res);
+        return acc
+    }
+    catch (e) {
+        console.error(e)
+        return null;
     }
 }

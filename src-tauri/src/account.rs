@@ -45,6 +45,16 @@ impl Account {
         }))
     }
 
+    pub fn is_match(&self, val: &str) -> bool {
+        if let Some(_) = self.username.find(val) {
+            return true;
+        }
+        if let Some(_) = self.link.find(val) {
+            return true;
+        }
+        false
+    }
+
     pub fn csv_header() -> [String; 3] {
         [String::from("username"), String::from("link"), String::from("password")]
     }

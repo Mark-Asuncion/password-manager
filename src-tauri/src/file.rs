@@ -10,8 +10,8 @@ use csv::{Writer, Reader};
 pub mod constants {
     // TODO include windows
     // unix like
-    pub const CONFIG: &str = "/.config/pwd-manager";
-    pub const DATA: &str = "/.local/share/pwd-manager/user";
+    pub const CONFIG: &str = "/.config/password-manager";
+    pub const DATA: &str = "/.local/share/password-manager/user";
     pub const F_ACCOUNT: &str = "acc.csv";
     pub const F_KEY: &str = "aesk";
     pub const D_BACKUP: &str = ".bak";

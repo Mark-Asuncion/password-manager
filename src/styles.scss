@@ -8,7 +8,7 @@ body {
 }
 
 input {
-    border-color: map-get($theme-colors, "secondary") !important;
+    border-color: $secondary !important;
 }
 
 thead {
@@ -22,4 +22,13 @@ thead {
 
 #btn-close.btn-outline-secondary {
     --bs-btn-hover-bg: #{$gray-300};
+}
+
+#search-group {
+    &:focus-within {
+        div, input {
+            border-width: map-get($border-widths, 2) !important;
+            border-color: $primary !important;
+        }
+    }
 }

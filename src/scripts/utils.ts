@@ -55,6 +55,10 @@ function _createActionsCell(inputPassword: HTMLInputElement, id: number): HTMLTa
     btn_copy.addEventListener("click", (e) => {
         e.preventDefault();
         navigator.clipboard.writeText(inputPassword.value);
+        cell.dispatchEvent(new CustomEvent("notify", {
+            bubbles: true,
+            detail: { text: "Content Copied to Clipboard" }
+        }));
     });
     btn_del.addEventListener("click", async (e) => {
         e.preventDefault();
@@ -132,4 +136,17 @@ export const Table = {
         });
         return selected;
     },
+}
+
+export function createToast(text: string): HTMLDivElement {
+    const template = document.createElement("template");
+    const toast = `<div class="toast bg-dark show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+            <img src="${imCopy}" class="rounded m-auto" alt="...">
+            <div class="toast-body"> ${text} </div>
+            <button type="button" class="btn-close btn-close-white m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            </div>`;
+    template.innerHTML = toast;
+    return template.content.children[0] as HTMLDivElement;
 }

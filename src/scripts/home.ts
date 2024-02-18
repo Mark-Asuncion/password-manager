@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/tauri";
 import { append_account, get_accounts, save_accounts, search } from "./binder";
-import { Table } from "./utils";
+import { Table, createToast } from "./utils";
 
 window.addEventListener("DOMContentLoaded", () => {
     const table = document.querySelector("table")!;
@@ -19,6 +19,15 @@ window.addEventListener("DOMContentLoaded", () => {
             detail: { results: res }
         }));
     }
+
+    table.addEventListener("notify", ((e: CustomEvent) => {
+        const container = document.querySelector("#toast-container");
+        const toast = createToast(e.detail.text);
+        container?.appendChild(toast);
+        setTimeout(() => {
+            container?.removeChild(toast);
+        }, 1000);
+    }) as EventListener);
 
     table.addEventListener("tablereload", async () => {
         const searchBarV = ( document.querySelector("#search-bar")! as HTMLInputElement).value;

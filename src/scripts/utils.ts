@@ -1,4 +1,4 @@
-import { open } from "@tauri-apps/api/dialog";
+import { open, save } from "@tauri-apps/api/dialog";
 import { Account, add_account, remove_account, update_account } from "./binder";
 import imEditOn from "/assets/edit_white.svg";
 import imEditOff from "/assets/edit_off_white.svg";
@@ -136,6 +136,14 @@ export const Table = {
         });
         return selected;
     },
+}
+
+export async function exportDialog(): Promise<string | null> {
+    const selected = await save({
+        title: "Choose a destination",
+        defaultPath: "./accounts"
+    });
+    return selected;
 }
 
 export function createToast(text: string): HTMLDivElement {

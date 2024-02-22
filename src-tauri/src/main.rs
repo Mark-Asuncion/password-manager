@@ -27,7 +27,8 @@ fn main() {
             frontend::add_account,
             frontend::remove_account,
             frontend::append_account,
-            frontend::search
+            frontend::search,
+            frontend::export
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

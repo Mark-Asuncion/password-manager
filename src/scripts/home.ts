@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/tauri";
-import { append_account, get_accounts, save_accounts, search } from "./binder";
-import { Table, createToast } from "./utils";
+import { append_account, get_accounts, save_accounts, search, export_to_archive } from "./binder";
+import { Table, createToast, exportDialog } from "./utils";
 
 window.addEventListener("DOMContentLoaded", () => {
     const table = document.querySelector("table")!;
@@ -113,6 +113,21 @@ window.addEventListener("DOMContentLoaded", () => {
         table.dispatchEvent(new Event("tablereload"));
     }
 
+    async function _export(e: Event) {
+        e.preventDefault();
+        const spinner = document.querySelector(".lds-ripple-container") as HTMLDivElement;
+        spinner.style.display = "block";
+        const sel = await exportDialog();
+        if (sel === null) {
+            spinner.style.display = "none";
+            return;
+        }
+        await export_to_archive(sel)
+        setTimeout(function() {
+            spinner.style.display = "none";
+        }, 500);
+    }
+
     async function handleSearch(e: Event) {
         const inp = (e.currentTarget as HTMLInputElement).value;
         trySearch(inp);
@@ -134,12 +149,14 @@ window.addEventListener("DOMContentLoaded", () => {
     const btnSave = document.querySelector("#save")!;
     const btnAdd = document.querySelector("#add")!;
     const btnAppend = document.querySelector("#opt-append")!;
+    const btnExport = document.querySelector("#opt-export")!;
     const searchBar = document.querySelector("#search-bar")!;
     const searchFocused = document.querySelector("#search-focused")!;
     const searchBtnClose = searchFocused.querySelector("#btn-close")!;
     btnAdd.addEventListener("click", addAccount);
     btnSave.addEventListener("click", saveAccounts)
     btnAppend.addEventListener("click", appendAccounts);
+    btnExport.addEventListener("click", _export);
     searchBar.addEventListener("keyup", handleSearch);
     searchBtnClose.addEventListener("click", handleSearchClose);
 

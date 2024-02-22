@@ -119,3 +119,11 @@ export async function search(val: string): Promise<[Account] | null> {
         return null;
     }
 }
+
+export async function export_to_archive(path: string) {
+    try {
+        return invoke("export", { path: path });
+    } catch (e) {
+        console.error(e)
+    }
+}

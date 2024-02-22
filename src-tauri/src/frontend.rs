@@ -6,6 +6,7 @@ use crate::account::Account;
 use serde_json;
 use std::fs;
 use std::io::Write;
+use std::path::Path;
 use std::path::PathBuf;
 use tauri::api::dialog;
 use tauri::State;
@@ -318,4 +319,16 @@ pub fn search(val: String, state: State<Global> ) -> String {
         }
     }
     serde_json::to_string(&ret).unwrap_or_default()
+}
+
+#[tauri::command]
+pub fn export(path: String) {
+    if path.is_empty() {
+        return;
+    }
+    let p = Path::new(&path);
+    println!("export:: {:?}", p);
+    if let Err(e) = file::create_archive(&p) {
+        errors::show_error(e.to_string().as_str());
+    }
 }

@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::fs::{self, File, OpenOptions};
 use homedir::get_my_home;
 use csv::{Writer, Reader};
+use tar::Builder;
 
 #[allow(unused)]
 pub mod constants {
@@ -197,5 +198,45 @@ pub fn write_csv(path_file: &Path, records: &[Account], key: &[u8], iv: &[u8]) -
             return Err( io::Error::new(io::ErrorKind::Other, e.to_string().as_str()) );
         }
     }
+    Ok(())
+}
+
+pub fn create_archive(path_file: &Path) -> io::Result<()> {
+    let file_name = {
+        let mut path = PathBuf::from(path_file);
+        path.set_extension("tar");
+        path
+    };
+    let f_archive = open(&file_name)?;
+    let mut builder = Builder::new(f_archive);
+    let p_key = {
+        let mut p_key = udata_path()?;
+        p_key.push(constants::F_KEY);
+        p_key
+    };
+    let p_acc = {
+        let mut p_acc = udata_path()?;
+        p_acc.push(constants::F_ACCOUNT);
+        p_acc
+    };
+    let p_acc_bak = {
+        let mut p_acc = udata_path()?;
+        p_acc.push(constants::D_BACKUP);
+        p_acc.push(constants::D_BACKUP_ACCOUNT);
+        let mut list = _list_dir_files(&p_acc)?;
+        list.pop()
+    };
+    if let Ok(mut file) = File::open(p_key) {
+        builder.append_file(Path::new(constants::F_KEY), &mut file)?;
+    }
+    if let Ok(mut file) = File::open(p_acc) {
+        builder.append_file(Path::new(constants::F_ACCOUNT), &mut file)?;
+    }
+    if let Some(path) = p_acc_bak {
+        if let Ok(mut file) = File::open(&path) {
+            builder.append_file(Path::new(path.file_name().unwrap_or(std::ffi::OsStr::new("acc.decrypted.csv"))), &mut file)?;
+        }
+    }
+    builder.finish()?;
     Ok(())
 }

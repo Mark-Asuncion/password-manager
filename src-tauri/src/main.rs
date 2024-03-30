@@ -9,12 +9,14 @@ mod errors;
 mod account;
 mod global;
 mod frontend;
+mod config;
 
 fn main() {
     tauri::Builder::default()
         .manage(global::Global{
             key_iv: Mutex::new(Default::default()),
-            accounts: Mutex::new(Default::default())
+            accounts: Mutex::new(Default::default()),
+            config: Mutex::new(Default::default())
         })
         .invoke_handler(tauri::generate_handler![
             frontend::create_key,
@@ -28,7 +30,8 @@ fn main() {
             frontend::remove_account,
             frontend::append_account,
             frontend::search,
-            frontend::export
+            frontend::export,
+            frontend::set_workspace
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

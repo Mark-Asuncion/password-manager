@@ -158,3 +158,12 @@ export function createToast(text: string): HTMLDivElement {
     template.innerHTML = toast;
     return template.content.children[0] as HTMLDivElement;
 }
+
+export async function setWorkspace(): Promise<string | null> {
+    const selected = await open({
+        title: "Set a workspace folder",
+        multiple: false,
+        directory: true,
+    });
+    return selected as string | null;
+}

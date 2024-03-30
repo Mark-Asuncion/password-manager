@@ -15,6 +15,7 @@ pub mod constants {
     pub const DATA: &str = "/.local/share/password-manager/user";
     pub const F_ACCOUNT: &str = "acc.csv";
     pub const F_KEY: &str = "aesk";
+    pub const F_CONFIG: &str = "config.json";
     pub const D_BACKUP: &str = ".bak";
     pub const D_BACKUP_KEY: &str = "key";
     pub const D_BACKUP_ACCOUNT: &str = "account";
@@ -239,4 +240,53 @@ pub fn create_archive(path_file: &Path) -> io::Result<()> {
     }
     builder.finish()?;
     Ok(())
+}
+
+pub fn get_key_path_udata_or(workspace_path: Option<String>) -> io::Result<PathBuf> {
+    let mut f: PathBuf;
+    if let Some(st_path) = workspace_path {
+        f = PathBuf::from(st_path);
+    }
+    else {
+        f = udata_path()?;
+    }
+    f.push(constants::F_KEY);
+    Ok(f)
+}
+
+pub fn get_key_file_udata_or(workspace_path: Option<String>) -> io::Result<File> {
+    let mut f: PathBuf;
+    if let Some(st_path) = workspace_path {
+        f = PathBuf::from(st_path);
+    }
+    else {
+        f = udata_path()?;
+    }
+    f.push(constants::F_KEY);
+    Ok(open(&f)?)
+}
+
+pub fn get_account_path_udata_or(workspace_path: Option<String>) -> io::Result<PathBuf> {
+    let mut f: PathBuf;
+    if let Some(st_path) = workspace_path {
+        f = PathBuf::from(st_path);
+    }
+    else {
+        f = udata_path()?;
+    }
+    f.push(constants::F_ACCOUNT);
+    Ok(f)
+}
+
+#[allow(dead_code)]
+pub fn get_account_file_udata_or(workspace_path: Option<String>) -> io::Result<File> {
+    let mut f: PathBuf;
+    if let Some(st_path) = workspace_path {
+        f = PathBuf::from(st_path);
+    }
+    else {
+        f = udata_path()?;
+    }
+    f.push(constants::F_ACCOUNT);
+    Ok(open(&f)?)
 }

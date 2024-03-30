@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::file;
 use crate::m_openssl;
 use crate::errors;
@@ -12,46 +13,48 @@ use tauri::api::dialog;
 use tauri::State;
 
 #[tauri::command]
-pub fn create_key() -> String {
-    let mut s = file::udata_path().unwrap();
-    s.push(file::constants::F_KEY);
-    let path = s.as_path();
+pub fn create_key(state: State<Global>) {
+    let workspace = (*state.config
+        .lock()
+        .expect(errors::mutex_lock_error("workspace").as_str()))
+        .get_workspace();
+    let path = file::get_key_path_udata_or(workspace)
+        .expect("Error Occured acquiring key file");
     if path.exists() && path.is_file() {
-        return errors::json_error("file already exists");
+        return;
     }
-    // println!("create_key():: Creating Key");
     let key: Vec<u8>;
     let iv: Vec<u8>;
     match m_openssl::gen_random_bytes() {
         Err(e) => {
             errors::show_error(e.to_string().as_str());
-            return errors::json_error(e.to_string().as_str());
+            return;
         },
         Ok(v) => key = v,
     }
     match m_openssl::gen_random_bytes() {
         Err(e) => {
             errors::show_error(e.to_string().as_str());
-            return errors::json_error(e.to_string().as_str());
+            return;
         },
         Ok(v) => iv = v,
     }
 
-    match file::open(s.as_path()) {
+    match file::open(&path) {
         Ok(mut file) => {
             file.write_all(key.as_slice()).unwrap();
             file.write_all(iv.as_slice()).unwrap();
         },
         Err(e) => {
             errors::show_error(e.to_string().as_str());
-            return errors::json_error(e.to_string().as_str());
+            return;
         },
     }
-    r#"{"ok":true}"#.to_string()
 }
 
 #[tauri::command]
 pub fn load_key() -> String {
+    // TODO dialog on fronend process here only
     let confirm_dialog = dialog::MessageDialogBuilder::new("Confirm", "A key already exists, do you want to overwrite it?")
         .kind(dialog::MessageDialogKind::Warning)
         .buttons(dialog::MessageDialogButtons::YesNo);
@@ -106,20 +109,53 @@ pub fn load_key() -> String {
 }
 
 #[tauri::command]
-pub fn skip_setup_page() -> bool {
-    let mut s = file::udata_path().unwrap();
-    s.push(file::constants::F_KEY);
-    s.exists()
+pub fn skip_setup_page(state: State<Global>) -> bool {
+    let workspace = (*state.config
+        .lock()
+        .expect(errors::mutex_lock_error("workspace").as_str()))
+        .get_workspace();
+    let path = file::get_key_path_udata_or(workspace)
+        .expect("Error Occured acquiring key file");
+    path.exists()
 }
 
 #[tauri::command]
 pub fn load_runtime(state: State<Global>) -> String {
-    let f_key = {
-        let mut f = file::udata_path().unwrap();
-        f.push(file::constants::F_KEY);
-        f
-    };
-    match file::open(f_key.as_path()) {
+    if !Config::exists() {
+        let config = &*state.config
+                    .lock()
+                    .expect(
+                        errors::mutex_lock_error("config")
+                            .as_str()
+                    );
+        if let Err(e) = config.write() {
+            errors::show_error(e.to_string().as_str());
+            return errors::json_error(e.to_string().as_str());
+        }
+    }
+    else {
+        match Config::load() {
+            Ok(v) => {
+                *state.config
+                    .lock()
+                    .expect(
+                        errors::mutex_lock_error("config")
+                            .as_str()
+                    ) = v;
+            },
+            Err(e) => {
+                errors::show_error(e.to_string().as_str());
+                return errors::json_error(e.to_string().as_str());
+            }
+        }
+    }
+
+    let workspace = (*state.config
+        .lock()
+        .expect(errors::mutex_lock_error("workspace").as_str()))
+        .get_workspace();
+    let f_key = file::get_key_file_udata_or(workspace.clone());
+    match f_key {
         Ok(mut v) => {
             let keyiv = m_openssl::open_key(&mut v);
             if keyiv.0.is_empty() {
@@ -135,12 +171,9 @@ pub fn load_runtime(state: State<Global>) -> String {
         }
     }
 
-    let f_acc = {
-        let mut f = file::udata_path().unwrap();
-        f.push(file::constants::F_ACCOUNT);
-        f
-    };
-    match file::read_csv(f_acc.as_path()) {
+    let f_acc = file::get_account_path_udata_or(workspace)
+        .expect("Error Occured acquiring account file");
+    match file::read_csv(&f_acc) {
         Ok(v) => {
             let acc = &mut *state.accounts.lock().expect(errors::mutex_lock_error("accounts").as_str());
             *acc = v;
@@ -155,10 +188,10 @@ pub fn load_runtime(state: State<Global>) -> String {
 
 #[tauri::command]
 pub fn get_accounts(state: State<Global>) -> String {
-    let accounts = &*state.accounts.lock().expect(errors::mutex_lock_error("accounts").as_str());
+    let accounts = &mut *state.accounts.lock().expect(errors::mutex_lock_error("accounts").as_str());
     let key_iv = &*state.key_iv.lock().expect(errors::mutex_lock_error("key and iv").as_str());
     let mut ret: Vec<serde_json::Value> = vec![];
-    for ( id, account ) in accounts.iter().enumerate() {
+    for ( id, account ) in accounts.iter_mut().enumerate() {
         match account.as_json_decrypted(id, &key_iv.0, &key_iv.1) {
             Ok(json) => {
                 ret.push(json);
@@ -166,27 +199,12 @@ pub fn get_accounts(state: State<Global>) -> String {
             Err(e) => {
                 errors::show_error(format!("Cannot decrypt password of \"{}\'\n{}", &account.username,e).as_str());
                 ret.push(account.as_json(id));
+                match m_openssl::encrypt(&key_iv.0, &key_iv.1, &account.password) {
+                    Ok(v) => { account.password = v; },
+                    _ => {}
+                }
             }
         }
-        // match account.get_pass_decrypted(&key_iv.0, &key_iv.1) {
-        //     Ok(pass) => {
-        //         let j = serde_json::json!({
-        //         "username": account.username,
-        //         "link": account.link,
-        //         "password": pass
-        //         });
-        //         ret.push(j);
-        //     },
-        //     Err(e) => {
-        //         errors::show_error(format!("Cannot decrypt password of \"{}\'\n{}", &account.username,e).as_str());
-        //         let j = serde_json::json!({
-        //         "username": account.username,
-        //         "link": account.link,
-        //         "password": account.password
-        //         });
-        //         ret.push(j);
-        //     }
-        // }
     }
     match serde_json::to_string(&ret) {
         Ok(v) => {
@@ -225,11 +243,14 @@ pub fn update_account(id: usize, key: String, val: String,state: State<Global>) 
 pub fn save_accounts(state: State<Global>) {
     let accounts = &*state.accounts.lock().expect(errors::mutex_lock_error("accounts").as_str());
     let key_iv = &*state.key_iv.lock().expect(errors::mutex_lock_error("key and iv").as_str());
-    let mut s = file::udata_path().unwrap();
-    s.push(file::constants::F_ACCOUNT);
-
+    let workspace = (*state.config
+        .lock()
+        .expect(errors::mutex_lock_error("workspace").as_str()))
+        .get_workspace();
+    let s = file::get_account_path_udata_or(workspace.clone())
+        .expect("Error Occured acquiring account file");
     if let Err(e) = file::write_csv(
-        s.as_path(),
+        &s,
         accounts.as_slice(),
         &key_iv.0,
         &key_iv.1
@@ -329,6 +350,15 @@ pub fn export(path: String) {
     let p = Path::new(&path);
     println!("export:: {:?}", p);
     if let Err(e) = file::create_archive(&p) {
+        errors::show_error(e.to_string().as_str());
+    }
+}
+
+#[tauri::command]
+pub fn set_workspace(path: String, state: State<Global>) {
+    let config = &mut state.config.lock().expect(errors::mutex_lock_error("config").as_str());
+    config.set_workspace(path);
+    if let Err(e) = config.write() {
         errors::show_error(e.to_string().as_str());
     }
 }

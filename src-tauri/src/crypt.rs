@@ -6,7 +6,29 @@ use openssl::error::ErrorStack;
 use openssl::symm::{Cipher, Mode};
 use openssl::symm::Crypter;
 
-pub type KEY_IV = (Vec<u8>, Vec<u8>);
+pub struct KeyIv {
+    pub key: Vec<u8>,
+    pub iv: Vec<u8>
+}
+
+impl KeyIv {
+    pub fn from(buf: Vec<u8>) -> Self {
+        Self {
+            key: Vec::from(&buf[0..16]),
+            iv: Vec::from(&buf[16..32])
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.key.is_empty() || self.iv.is_empty()
+    }
+}
+
+impl Default for KeyIv {
+    fn default() -> Self {
+        Self { key: Default::default(), iv: Default::default() }
+    }
+}
 
 pub fn gen_32_bytes() -> Result< Vec<u8>, ErrorStack > {
     // 256 bits
@@ -15,17 +37,22 @@ pub fn gen_32_bytes() -> Result< Vec<u8>, ErrorStack > {
     Ok(Vec::from(buf))
 }
 
-pub fn read_key(file: &mut File) -> KEY_IV {
+pub fn read_key(file: &mut File) -> KeyIv {
     let mut buf = [0u8; 32];
     if let Err(e) = file.read_exact(&mut buf) {
         dbg!(e);
-        return (vec![], vec![]);
+        return KeyIv::default();
     }
-    (Vec::from(&buf[0..16]), Vec::from(&buf[16..32]))
+    KeyIv {
+        key: Vec::from(&buf[0..16]),
+        iv: Vec::from(&buf[16..32])
+    }
 }
 
-pub fn encrypt(key: &[u8], iv: &[u8], data: &str) -> Result<String, ErrorStack> {
-    let mut crypter = Crypter::new( Cipher::aes_128_cbc(), Mode::Encrypt, key.as_ref(), Some(iv.as_ref()) )?;
+pub fn encrypt(keyiv: &KeyIv, data: &str) -> Result<String, ErrorStack> {
+    let key = keyiv.key.as_slice();
+    let iv = keyiv.iv.as_slice();
+    let mut crypter = Crypter::new( Cipher::aes_128_cbc(), Mode::Encrypt, key, Some(iv) )?;
     let block_size = Cipher::aes_128_cbc().block_size();
     let mut out = vec![0; data.len() + block_size];
     let mut count = crypter.update(data.as_bytes(), &mut out)?;
@@ -34,9 +61,11 @@ pub fn encrypt(key: &[u8], iv: &[u8], data: &str) -> Result<String, ErrorStack> 
     Ok(base64::encode_block(out.as_slice()))
 }
 
-pub fn decrypt(key: &[u8], iv: &[u8], data_b64: &str) -> Result<String, ErrorStack> {
+pub fn decrypt(keyiv: &KeyIv, data_b64: &str) -> Result<String, ErrorStack> {
+    let key = keyiv.key.as_slice();
+    let iv = keyiv.iv.as_slice();
     let data = base64::decode_block(data_b64)?;
-    let mut crypter = Crypter::new( Cipher::aes_128_cbc(), Mode::Decrypt, key.as_ref(), Some(iv.as_ref()) )?;
+    let mut crypter = Crypter::new( Cipher::aes_128_cbc(), Mode::Decrypt, key, Some(iv) )?;
     let block_size = Cipher::aes_128_cbc().block_size();
     let mut out = vec![0; data.len() + block_size];
     let mut count = crypter.update(data.as_slice(), &mut out)?;

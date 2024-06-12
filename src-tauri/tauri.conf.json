@@ -2,8 +2,7 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
-    "devPath": "http://localhost:1420",
-    "distDir": "../dist"
+    "devPath": "http://localhost:1420", "distDir": "../dist"
   },
   "package": {
     "productName": "password-manager",
@@ -20,7 +19,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev",
+      "identifier": "com.mark.dev",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
@@ -36,9 +35,9 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "password-manager",
-        "width": 800,
-        "height": 600
+        "title": "Password Manager",
+        "width": 1200,
+        "height": 720
       }
     ]
   }

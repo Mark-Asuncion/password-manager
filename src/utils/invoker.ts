@@ -11,13 +11,39 @@ export async function save(): Promise<void | Error> {
     }
 }
 
-export async function update(stringIndex: [string, string] | undefined, numIndex: number | undefined, ): Promise<void | Error> {
+export interface Account {
+    username?:   string,
+    link?:       string,
+    password?:   string
+}
+
+export async function update_account(query: Account, update: Account): Promise<void | Error> {
     try {
-        invoke("update", { nindex: numIndex, sindex: stringIndex });
+        invoke("update_account", { query, update });
         return;
     }
     catch (e) {
         console.error(e);
         return new Error(e as string);
+    }
+}
+
+export async function get_accounts(): Promise<Account[]> {
+    try {
+        const a = await invoke("get_accounts") as Account[];
+        return a;
+    }
+    catch (e) {
+        console.error(e);
+    }
+    return [];
+}
+
+export async function add_account(v: Account) {
+    try {
+        invoke("add_account", { v })
+    }
+    catch (e) {
+        console.error(e);
     }
 }

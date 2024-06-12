@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { MInput } from "./input";
-import { update } from "../../utils/invoker";
+import { Account, update_account } from "../../utils/invoker";
 import { InputPassword } from "./password";
 import { AddNo, AddOk, Copy, MDelete } from "./actions";
 
@@ -11,7 +11,7 @@ interface RowsProps {
 export function Rows(props: RowsProps) {
     return (
         <div className="text-white w-full flex flex-col gap-1">
-            <div className="w-full grid grid-cols-4 text-center text-xl mt-2 gap-2">
+            <div className="w-full grid grid-cols-4 text-center font-bold text-xl mt-2 gap-2">
                 <h1>Username</h1>
                 <h1>Link</h1>
                 <h1>Password</h1>
@@ -34,19 +34,24 @@ export function Row(props: RowProps) {
     const [username, setUsername] = useState(props.username);
     const [link, setLink]         = useState(props.link);
     const [password, setPassword] = useState(props.password);
-    const updator = useCallback(() => {
-        update([username, link], props.id);
-    }, [username, link, props]);
+    const updator = useCallback((_update: Account) => {
+        update_account({
+            username: ( _update.username )? undefined:username,
+            link: (_update.link)? undefined:link,
+            password: (_update.password)? undefined:password
+        },_update);
+    }, [username, link, password, props]);
 
     return (
-        <div id={(props.id)? props.id:0} className="w-full grid grid-cols-4 my-1 gap-2">
+        <div id={(props.id)? props.id + "":""}
+            className="w-full grid grid-cols-4 my-1 gap-2">
             <MInput
                 value={username}
                 onChange={(e) => {
                     setUsername(e);
                 }}
                 placeholder="Username"
-                updator={updator}
+                updator={() => updator({username})}
             />
             <MInput
                 value={link}
@@ -54,7 +59,7 @@ export function Row(props: RowProps) {
                     setLink(e);
                 }}
                 placeholder="Link"
-                updator={updator}
+                updator={() => updator({link})}
             />
             <InputPassword
                 value={password}
@@ -62,7 +67,7 @@ export function Row(props: RowProps) {
                     setPassword(e);
                 }}
                 placeholder="Password"
-                updator={updator}
+                updator={() => updator({password})}
             />
             <div className="flex flex-row items-center m-auto">
                 <Copy
@@ -83,7 +88,11 @@ export function Row(props: RowProps) {
 }
 
 
-export function AddRow() {
+interface AddRowProps {
+    onCancel: () => void,
+    onOk:     (v: Account) => void
+}
+export function AddRow(props: AddRowProps) {
     const [username, setUsername] = useState("");
     const [link, setLink]         = useState("");
     const [password, setPassword] = useState("");
@@ -91,7 +100,7 @@ export function AddRow() {
     return (
         <div
             className="w-full grid grid-cols-4 my-1 gap-2
-                opacity-95 rounded-md">
+            opacity-95 rounded-md">
             <MInput
                 value={username}
                 onChange={(e) => {
@@ -119,13 +128,19 @@ export function AddRow() {
             <div className="flex flex-row items-center m-auto">
                 <AddNo
                     onClick={(_) => {
-                        console.log("cancel");
+                        props.onCancel()
                     }}
                 />
-
                 <AddOk
                     onClick={(_) => {
-                        console.log("add");
+                        if ( username.length === 0 || password.length === 0 ) {
+                            return;
+                        }
+                        props.onOk({
+                            username,
+                            link,
+                            password
+                        })
                     }}
                 />
             </div>

@@ -7,6 +7,8 @@ mod state;
 mod account;
 mod crypt;
 mod tests;
+mod error;
+mod utils;
 
 fn main() {
     tauri::Builder::default()
@@ -19,6 +21,10 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            state::save,
+            state::update_account,
+            state::add_account,
+            state::get_accounts
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use crate::crypt::{gen_32_bytes, encrypt, decrypt};
+    use std::sync::Mutex;
+
+    use crate::{crypt::{gen_32_bytes, encrypt, decrypt}, state::MState, account::{Account, TAccounts}};
 
     #[test]
     fn _t_crypt() {
@@ -13,5 +15,20 @@ mod tests {
         let decryptedb = decrypt(&keyiv.0, &keyiv.1, &encryptedb64).unwrap();
 
         assert_eq!(data, decryptedb);
+    }
+
+    #[test]
+    fn _t_accs() {
+        // let mut state = MState::default();
+        // let acc = Account {
+        //     username: "username".into(),
+        //     link: "link".into(),
+        //     password: "password".into()
+        // };
+        //
+        // state.accs_push(acc);
+        //
+        // let acc = state.accs_get(0);
+        //
     }
 }

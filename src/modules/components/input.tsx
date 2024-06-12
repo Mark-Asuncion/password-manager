@@ -1,5 +1,3 @@
-import { update } from "../../utils/invoker"
-
 export interface InputProps {
     value:                string,
     placeholder:          string,
@@ -25,7 +23,7 @@ export function MInput(props: InputProps) {
                         props.onChange(e.target.value);
                     }}
                     value={props.value}
-                    onBlur={(e) => {
+                    onBlur={(_) => {
                         props.updator();
                     }}
                 />

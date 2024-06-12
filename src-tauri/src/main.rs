@@ -1,15 +1,25 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
+use std::fs::create_dir_all;
+
+mod state;
+mod account;
+mod crypt;
+mod tests;
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![greet])
+        .manage(state::MState::default())
+        .setup(|app| {
+            let data_dir = app.path_resolver().app_data_dir()
+                .expect("APP_DATA_DIR failed to obtain");
+            create_dir_all(data_dir)
+                .expect("APP_DATA_DIR failed to create");
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

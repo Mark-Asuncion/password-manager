@@ -24,7 +24,7 @@ export function InputPassword(prop: InputProps) {
     const [isShowPass, setIsShowPass] = React.useState(false);
     return (
         <div className={( prop.classContainer )? prop.classContainer:""}>
-            <div className="relative mt-2 rounded-md shadow-sm">
+            <div className="relative rounded-md shadow-sm">
                 <input
                     type={ (isShowPass)? "text":"password" }
                     // name={prop.nameId}
@@ -37,7 +37,7 @@ export function InputPassword(prop: InputProps) {
                         prop.onChange(e.target.value);
                     }}
                     value={prop.value}
-                    onBlur={(e) => {
+                    onBlur={(_) => {
                         prop.updator();
                     }}
                 />

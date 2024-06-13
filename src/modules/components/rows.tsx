@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { MInput } from "./input";
-import { Account, update_account } from "../../utils/invoker";
+import { Account, delete_account, update_account } from "../../utils/invoker";
 import { InputPassword } from "./password";
 import { AddNo, AddOk, Copy, MDelete } from "./actions";
 
@@ -24,10 +24,10 @@ export function Rows(props: RowsProps) {
 }
 
 interface RowProps {
-    id?:      number,
     username: string,
     link:     string,
-    password: string
+    password: string,
+    onDelete: () => void,
 }
 
 export function Row(props: RowProps) {
@@ -43,8 +43,8 @@ export function Row(props: RowProps) {
     }, [username, link, password, props]);
 
     return (
-        <div id={(props.id)? props.id + "":""}
-            className="w-full grid grid-cols-4 my-1 gap-2">
+        <div
+            className="w-full grid grid-cols-4 my-1 gap-2 p-2 rounded-md hover:bg-neutral-800">
             <MInput
                 value={username}
                 onChange={(e) => {
@@ -78,8 +78,12 @@ export function Row(props: RowProps) {
 
                 <MDelete
                     onClick={(_) => {
-                        console.log("delete");
-                        window.location.reload();
+                        delete_account({
+                            username,
+                            link,
+                            password
+                        });
+                        props.onDelete();
                     }}
                 />
             </div>
@@ -99,8 +103,7 @@ export function AddRow(props: AddRowProps) {
 
     return (
         <div
-            className="w-full grid grid-cols-4 my-1 gap-2
-            opacity-95 rounded-md">
+            className="w-full grid grid-cols-4 my-1 gap-2 p-2 rounded-md hover:bg-neutral-800">
             <MInput
                 value={username}
                 onChange={(e) => {

@@ -3,7 +3,7 @@ use std::io;
 
 use csv::{Writer, Reader};
 
-use crate::{account::Account, crypt::KeyIv};
+use crate::{account::{Account, Accounts}, crypt::KeyIv, utils::get_local_time_str};
 
 use super::{FileNames, backup::backup_accounts};
 
@@ -30,14 +30,14 @@ pub fn write_csv(path_file: &Path, records: &[Account], keyiv: &KeyIv, mut bak_d
     for record in records {
         let ser = record.as_encrypted(&keyiv);
         if let Err(e) = writer.serialize(ser) {
-            println!("write_csv()::Error writing Aborting {}", e.to_string());
+            println!("[{} utils::mcsv::write_csv]::Error writing Aborting {}", get_local_time_str(), e.to_string());
             return Err( io::Error::new(io::ErrorKind::Other, e.to_string().as_str()) );
         }
     }
     Ok(())
 }
 
-pub fn read_csv(path_file: &Path, keyiv: &KeyIv) -> io::Result<Vec<Account>> {
+pub fn read_csv(path_file: &Path, keyiv: &KeyIv) -> io::Result<Accounts> {
     if !path_file.exists() { return Ok(vec![]); }
     let r: Reader<File>;
     match Reader::from_path(path_file) {
@@ -51,14 +51,18 @@ pub fn read_csv(path_file: &Path, keyiv: &KeyIv) -> io::Result<Vec<Account>> {
         if let Ok(v) = string_record {
             if v.len() <= 3 {
                 let a: Account = v.deserialize(None)?;
-                accs.push(a.as_decrypted(&keyiv));
+                let aa = a.as_decrypted(&keyiv);
+                if aa.password.is_empty() {
+                    println!("[{} utils::mcsv::read_csv]::Failed to decrypt password {:?}", get_local_time_str(), &a);
+                }
+                accs.push(aa);
             }
         }
     }
     Ok(accs)
 }
 
-pub fn read_csv_plain(path_file: &Path) -> io::Result<Vec<Account>> {
+pub fn read_csv_plain(path_file: &Path) -> io::Result<Accounts> {
     if !path_file.exists() { return Ok(vec![]); }
     let r: Reader<File>;
     match Reader::from_path(path_file) {

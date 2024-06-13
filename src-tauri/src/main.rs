@@ -24,7 +24,9 @@ fn main() {
             state::save,
             state::update_account,
             state::add_account,
-            state::get_accounts
+            state::get_accounts,
+            state::append_account,
+            state::delete_account
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

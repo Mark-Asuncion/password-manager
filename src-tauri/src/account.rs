@@ -25,7 +25,22 @@ impl QueryAccount {
         }
     }
 
-    pub fn is_match(&self, other: &Account) -> bool {
+    pub fn find_count_readonly(&self, other: &Account) -> usize {
+        let mut match_c = 0;
+        if let Some(v) = &self.username {
+            if let Some(_) = &other.username.find(v) {
+                match_c+=1;
+            }
+        }
+        if let Some(v) = &self.link {
+            if let Some(_) = &other.link.find(v) {
+                match_c+=1;
+            }
+        }
+        match_c
+    }
+
+    pub fn match_count(&self, other: &Account) -> usize {
         // match should be 2 because 1 field can only be edited at a time
         let mut match_c = 0;
         if let Some(v) = &self.username {
@@ -43,7 +58,7 @@ impl QueryAccount {
                 match_c+=1;
             }
         }
-        match_c >= 2
+        match_c
     }
 }
 
@@ -59,11 +74,11 @@ impl Default for Account {
 }
 
 impl Account {
-    pub fn is_empty(&self) -> bool {
-        self.username.is_empty()
-        || self.link.is_empty()
-        || self.password.is_empty()
-    }
+    // pub fn is_empty(&self) -> bool {
+    //     self.username.is_empty()
+    //     || self.link.is_empty()
+    //     || self.password.is_empty()
+    // }
 
     pub fn set_ignore_empty(&mut self, update: Account) {
         if !update.username.is_empty() {

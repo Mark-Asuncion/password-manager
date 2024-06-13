@@ -16,6 +16,9 @@ export default function Searchbar(props: SearchbarProps) {
     const rf = useRef<HTMLInputElement | null>(null);
     if (props.shortcut) {
         document.addEventListener("keydown", (e) => {
+            if (e.target != document.body) {
+                return;
+            }
             if (rf.current && !rf.current.classList.contains("el-focus")) {
                 if (e.key == props.shortcut) {
                     e.preventDefault();
@@ -23,7 +26,7 @@ export default function Searchbar(props: SearchbarProps) {
                     rf.current.classList.add("el-focus");
                 }
             }
-            e.stopPropagation();
+            // e.stopPropagation();
         });
     }
     return (
@@ -39,7 +42,7 @@ export default function Searchbar(props: SearchbarProps) {
                     + " focus:ring-2 focus:ring-inset focus:ring-blue-500 focus:outline-none"
                     + " sm:text-sm sm:leading-6 text-white" + classN }
                 placeholder={props.placeholder}
-                onBlur={(e) => {
+                onBlur={(_) => {
                     if (rf.current) {
                         rf.current.classList.remove("el-focus");
                     }

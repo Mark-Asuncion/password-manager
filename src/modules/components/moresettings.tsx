@@ -32,7 +32,7 @@ export default function MoreSettings(props: MoreSettingsProps) {
                                 return (
                                     <div
                                         key={i}
-                                        className="text-white text-center text-xl hover:bg-neutral-700 py-1 px-2"
+                                        className="text-white text-center text-md hover:bg-neutral-700 py-1 px-3"
                                         onClick={(_) => v.cb()}
                                     >{v.name}</div>
                                 )

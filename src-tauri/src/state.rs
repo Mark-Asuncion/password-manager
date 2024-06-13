@@ -4,11 +4,12 @@ use std::{sync::Mutex, io::Write, fs::File, path::Path};
 use tauri::{AppHandle, State};
 
 use crate::account::QueryAccount;
+use crate::utils::mcsv::read_csv_plain;
 use crate::{account::{Accounts, Account}, error, crypt::{gen_32_bytes, KeyIv, read_key}, utils::{MFile, FileNames, mcsv}};
 
 pub struct MState {
     keyiv:    Mutex<KeyIv>,
-    accounts: Mutex<Accounts>
+    accounts: Mutex<Option<Accounts>>
 }
 
 impl Default for MState {
@@ -38,18 +39,23 @@ impl MState {
 
     pub fn is_accounts_loaded(&self) -> bool {
         let accs = &(*self.accounts.lock().expect(error::ACQ_STATE_ACCOUNTS));
-        !accs.is_empty()
+        if let None = accs {
+            return false;
+        }
+        true
     }
 
     fn accs_push(&self, v: Account) {
         let accs = &mut (*self.accounts.lock().expect(error::ACQ_STATE_ACCOUNTS));
+        let accs = accs.as_mut().unwrap();
         accs.push(v);
     }
 
     fn accs_update_at(&self, query: QueryAccount, update: QueryAccount) -> Option<()> {
         let accs = &mut (*self.accounts.lock().expect(error::ACQ_STATE_ACCOUNTS));
+        let accs = accs.as_mut().unwrap();
         for acc in accs {
-            if query.is_match(&acc) {
+            if query.match_count(&acc) >= 2 {
                 acc.set_ignore_empty(update.to_account());
                 dbg!(&acc);
                 return Some(())
@@ -63,7 +69,8 @@ impl MState {
         if keyiv.is_empty() {
             return Ok(());
         }
-        let accs = &(*self.accounts.lock().expect(error::ACQ_STATE_ACCOUNTS));
+        let accs = &mut (*self.accounts.lock().expect(error::ACQ_STATE_ACCOUNTS));
+        let accs = accs.as_mut().unwrap();
         let accs_slice = accs.as_slice();
         mcsv::write_csv(path, accs_slice, &keyiv, bak_dir)
     }
@@ -72,7 +79,32 @@ impl MState {
         let keyiv = &(*self.keyiv.lock().expect(error::ACQ_STATE_KEYIV));
         let accsl = mcsv::read_csv(path, &keyiv).unwrap_or_default();
         let accs = &mut (*self.accounts.lock().expect(error::ACQ_STATE_ACCOUNTS));
-        *accs = accsl;
+        *accs = Some(accsl);
+    }
+
+    fn accs_append(&self, path_file: &Path) -> io::Result<()> {
+        let accs = &mut (*self.accounts.lock().expect(error::ACQ_STATE_ACCOUNTS));
+        let accs = accs.as_mut().unwrap();
+        let mut ar = read_csv_plain(path_file)?;
+        accs.append(&mut ar);
+
+        Ok(())
+    }
+
+    fn accs_delete(&self, query: QueryAccount) {
+        let accs = &mut (*self.accounts.lock().expect(error::ACQ_STATE_ACCOUNTS));
+        let accs = accs.as_mut().unwrap();
+        let mut new_accs = vec![];
+        let mut delete1 = false;
+        for acc in accs.iter() {
+            if query.match_count(&acc) >= 3 && !delete1 {
+                delete1 = true;
+                continue;
+            }
+            new_accs.push(acc.clone());
+        }
+        *accs = new_accs;
+        dbg!(&accs);
     }
 }
 
@@ -127,7 +159,7 @@ pub fn save(handle: AppHandle, state: State<MState>) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn get_accounts( handle: AppHandle, state: State<MState>) -> Vec<Account> {
+pub fn get_accounts(query: Option<QueryAccount>, handle: AppHandle, state: State<MState>) -> Vec<Account> {
     let mut data_dir = handle.path_resolver()
         .app_data_dir()
         .expect(error::DATA_DIR_NOT_EXIST);
@@ -143,8 +175,20 @@ pub fn get_accounts( handle: AppHandle, state: State<MState>) -> Vec<Account> {
             state.accs_load(&data_dir);
         }
     }
-    let accs = &(*state.accounts.lock().expect(error::ACQ_STATE_ACCOUNTS));
-    accs.clone()
+    let accs = &mut (*state.accounts.lock().expect(error::ACQ_STATE_ACCOUNTS));
+    let accs = accs.as_mut().unwrap();
+    if let None = query {
+        return accs.clone();
+    }
+    let query = query.unwrap();
+    let mut res = vec![];
+    for acc in accs {
+        if query.find_count_readonly(&acc) != 0 {
+            res.push(acc.clone());
+        }
+    }
+    // dbg!(&res);
+    res
 }
 
 #[tauri::command]
@@ -155,4 +199,19 @@ pub fn update_account(query: QueryAccount, update: QueryAccount, state: State<MS
 #[tauri::command]
 pub fn add_account(v: Account, state: State<MState>) {
     state.accs_push(v);
+}
+
+#[tauri::command]
+pub fn append_account(path_file: PathBuf, state: State<MState>) -> Result<(), String> {
+    if let Err(e) = state.accs_append(&path_file) {
+        dbg!(e);
+        return Err(error::CSV_WRONG_FORMAT.into());
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_account(query: QueryAccount, state: State<MState>) {
+    state.accs_delete(query);
 }

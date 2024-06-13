@@ -2,7 +2,7 @@ use std::{io, path::{PathBuf, Path}, fs::{create_dir_all, self}, collections::Ve
 
 use crate::account::Account;
 
-use super::{mcsv::open_csv_writer, FileNames};
+use super::{mcsv::open_csv_writer, FileNames, get_local_time_str};
 
 fn _list_dir(dir: &Path) -> io::Result<Vec<PathBuf>> {
     if !dir.is_dir() { return Ok(vec![]); }
@@ -34,8 +34,7 @@ pub fn backup_accounts(mut bak_dir: PathBuf, records: &[Account]) -> io::Result<
         create_dir_all(&bak_dir)?;
     }
 
-    let suffix = chrono::Local::now()
-        .format("%Y-%m-%d-%H-%M");
+    let suffix = get_local_time_str();
     let fname = format!("{}{}", FileNames::TMP_ACC_LIST, suffix);
     bak_dir.push(&fname);
     let mut writer = open_csv_writer(&bak_dir)?;

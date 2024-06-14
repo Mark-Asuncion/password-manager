@@ -1,17 +1,18 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MInput } from "./input";
 import { Account, delete_account, update_account } from "../../utils/invoker";
 import { InputPassword } from "./password";
 import { AddNo, AddOk, Copy, MDelete } from "./actions";
 
-interface RowsProps {
+export interface RowsProps {
     children: JSX.Element | JSX.Element[],
 }
 
 export function Rows(props: RowsProps) {
     return (
         <div className="text-white w-full flex flex-col gap-1">
-            <div className="w-full grid grid-cols-4 text-center font-bold text-xl mt-2 gap-2">
+            <div className="w-full grid grid-cols-custom-row-layout text-center font-bold text-xl mt-2 gap-2">
+                <h1></h1>
                 <h1>Username</h1>
                 <h1>Link</h1>
                 <h1>Password</h1>
@@ -23,11 +24,13 @@ export function Rows(props: RowsProps) {
     )
 }
 
-interface RowProps {
-    username: string,
-    link:     string,
-    password: string,
-    onDelete: () => void,
+export interface RowProps {
+    username:   string,
+    rowN:       number,
+    link:       string,
+    password:   string,
+    onDelete:   (id: string) => void,
+    onCopyPass: (id: string) => void
 }
 
 export function Row(props: RowProps) {
@@ -44,7 +47,8 @@ export function Row(props: RowProps) {
 
     return (
         <div
-            className="w-full grid grid-cols-4 my-1 gap-2 p-2 rounded-md hover:bg-neutral-800">
+            className="w-full grid grid-cols-custom-row-layout my-1 gap-2 p-2 rounded-md hover:bg-neutral-800">
+            <h1 className="text-xl text-center">{props.rowN}</h1>
             <MInput
                 value={username}
                 onChange={(e) => {
@@ -73,6 +77,9 @@ export function Row(props: RowProps) {
                 <Copy
                     onClick={(_) => {
                         navigator.clipboard.writeText(password);
+                        const d = new Date(Date.now());
+                        let id = `${d.getUTCHours()}:${d.getUTCMinutes()}:${d.getUTCSeconds()}.${d.getUTCMilliseconds()}`;
+                        props.onCopyPass(id);
                     }}
                 />
 
@@ -83,7 +90,9 @@ export function Row(props: RowProps) {
                             link,
                             password
                         });
-                        props.onDelete();
+                        const d = new Date(Date.now());
+                        let id = `${d.getUTCHours()}:${d.getUTCMinutes()}:${d.getUTCSeconds()}.${d.getUTCMilliseconds()}`;
+                        props.onDelete(id);
                     }}
                 />
             </div>
@@ -91,20 +100,32 @@ export function Row(props: RowProps) {
     )
 }
 
-
-interface AddRowProps {
+export interface AddRowProps {
     onCancel: () => void,
     onOk:     (v: Account) => void
 }
+
 export function AddRow(props: AddRowProps) {
     const [username, setUsername] = useState("");
     const [link, setLink]         = useState("");
     const [password, setPassword] = useState("");
+    const usernameRef = useRef<HTMLInputElement | null>(null);
+
+    useEffect(() => {
+        // console.log(usernameRef.current);
+        if (usernameRef.current) {
+            usernameRef.current.focus();
+        }
+    }, [usernameRef]);
 
     return (
         <div
-            className="w-full grid grid-cols-4 my-1 gap-2 p-2 rounded-md hover:bg-neutral-800">
+            className="w-full grid grid-cols-custom-row-layout my-1 gap-2 p-2 rounded-md hover:bg-neutral-800">
+            <h1></h1>
             <MInput
+                getInRef={(el) => {
+                    usernameRef.current = el;
+                }}
                 value={username}
                 onChange={(e) => {
                     setUsername(e);

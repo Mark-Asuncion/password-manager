@@ -1,13 +1,13 @@
 import { invoke } from "@tauri-apps/api/tauri";
 
-export async function save(): Promise<void | Error> {
+export async function save() {
     try {
-        invoke("save");
+        await invoke("save");
         return;
     }
     catch (e) {
-        console.error(e);
-        return new Error(e as string);
+        // console.error(e);
+        return  Promise.reject(Error(e as string));
     }
 }
 
@@ -17,14 +17,13 @@ export interface Account {
     password?:   string
 }
 
-export async function update_account(query: Account, update: Account): Promise<void | Error> {
+export async function update_account(query: Account, update: Account) {
     try {
         invoke("update_account", { query, update });
         return;
     }
     catch (e) {
-        console.error(e);
-        return new Error(e as string);
+        // console.error(e);
     }
 }
 
@@ -34,7 +33,7 @@ export async function get_accounts(query: Account | undefined): Promise<Account[
         return a;
     }
     catch (e) {
-        console.error(e);
+        // console.error(e);
     }
     return [];
 }
@@ -44,29 +43,27 @@ export async function add_account(v: Account) {
         invoke("add_account", { v })
     }
     catch (e) {
-        console.error(e);
+        // console.error(e);
     }
 }
 
-export async function append_account(path: string): Promise<Error | void> {
+export async function append_account(path: string) {
     try {
-        invoke("append_account", { pathFile: path });
-        return;
+        await invoke("append_account", { pathFile: path });
     }
     catch (e) {
-        console.error(e);
-        return new Error(e as string);
+        // console.error(e);
+        return  Promise.reject(Error(e as string));
     }
 }
 
-export async function mexport(): Promise<Error | void> {
+export async function create_archive_tar(path: string): Promise<string> {
     try {
-        invoke("export");
-        return;
+        return await invoke("create_archive_tar", { path });
     }
     catch (e) {
-        console.error(e);
-        return new Error(e as string);
+        // console.error(e);
+        return Promise.reject(Error(e as string));
     }
 }
 
@@ -75,6 +72,6 @@ export async function delete_account(query: Account) {
         invoke("delete_account", { query });
     }
     catch (e) {
-        console.error(e);
+        // console.error(e);
     }
 }

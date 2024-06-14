@@ -1,8 +1,10 @@
 use std::{io, path::{PathBuf, Path}, fs::{create_dir_all, self}, collections::VecDeque};
 
-use crate::account::Account;
+use tauri::AppHandle;
 
-use super::{mcsv::open_csv_writer, FileNames, get_local_time_str};
+use crate::{account::Account, error};
+
+use super::{mcsv::open_csv_writer, FileNames, get_local_time_str, MFile::{self, open_read}};
 
 fn _list_dir(dir: &Path) -> io::Result<Vec<PathBuf>> {
     if !dir.is_dir() { return Ok(vec![]); }
@@ -30,6 +32,9 @@ fn limit_bak(bak_dir: &Path) {
 }
 
 pub fn backup_accounts(mut bak_dir: PathBuf, records: &[Account]) -> io::Result<()> {
+    if records.is_empty() {
+        return Ok(());
+    }
     if !bak_dir.exists() {
         create_dir_all(&bak_dir)?;
     }
@@ -50,4 +55,49 @@ pub fn backup_accounts(mut bak_dir: PathBuf, records: &[Account]) -> io::Result<
     Ok(())
 }
 
+pub fn export_to_tar(data_path: PathBuf, to: &mut PathBuf) -> io::Result<()> {
+    if let None = to.extension() {
+        to.set_extension("tar");
+    }
+    let tar_file = MFile::open_write(&to)?;
+    let mut builder = tar::Builder::new(tar_file);
 
+    let mut keyiv_f = {
+        let mut fname = data_path.clone();
+        fname.push(FileNames::KEYIV);
+        let f = open_read(&fname)?;
+        f
+    };
+
+    let mut acc_f = {
+        let mut fname = data_path.clone();
+        fname.push(FileNames::ACC_LIST);
+        let f = open_read(&fname)?;
+        f
+    };
+
+    let bak_d = {
+        let mut fname = data_path.clone();
+        fname.push(FileNames::BAK_ACC_D);
+        fname
+    };
+
+    builder.append_file(Path::new(FileNames::KEYIV), &mut keyiv_f)?;
+    builder.append_file(Path::new(FileNames::ACC_LIST), &mut acc_f)?;
+    builder.append_dir_all(Path::new(FileNames::BAK_ACC_D), &bak_d)?;
+    builder.finish()
+}
+
+#[tauri::command]
+pub fn create_archive_tar(mut path: PathBuf, handle: AppHandle) -> Result<String, String> {
+    let data_dir = handle.path_resolver()
+        .app_data_dir()
+        .expect(error::DATA_DIR_NOT_EXIST);
+
+    if let Err(e) = export_to_tar(data_dir, &mut path) {
+        dbg!(&e);
+        return Err(e.to_string());
+    }
+    let p = path.to_string_lossy().to_string();
+    Ok(p)
+}

@@ -4,7 +4,11 @@ export default {
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+          gridTemplateColumns: {
+            'custom-row-layout': '10% repeat(3, 1fr) 20%'
+          }
+        }
   },
   plugins: [],
 }

@@ -18,10 +18,10 @@ pub fn open_csv_writer(path_file: &Path) -> io::Result<Writer<File>> {
     };
 }
 
-pub fn write_csv(path_file: &Path, records: &[Account], keyiv: &KeyIv, mut bak_dir: PathBuf) -> io::Result<()> {
+pub fn write_csv(path_file: &Path, records: &[Account], keyiv: &KeyIv, mut data_dir: PathBuf) -> io::Result<()> {
     {
-        bak_dir.push(FileNames::BAK_ACC_D);
-        if let Err(e) = backup_accounts(bak_dir, records) {
+        data_dir.push(FileNames::BAK_ACC_D);
+        if let Err(e) = backup_accounts(data_dir, records) {
             dbg!(e);
         }
     }

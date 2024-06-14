@@ -1,4 +1,5 @@
 export interface InputProps {
+    getInRef?:               (el: HTMLInputElement) => void,
     value:                string,
     placeholder:          string,
     // nameId:               string,
@@ -12,6 +13,11 @@ export function MInput(props: InputProps) {
         <div className={( props.classContainer )? props.classContainer:""}>
             <div className="relative rounded-md shadow-sm">
                 <input
+                    ref={(el) => {
+                        if (props.getInRef && el) {
+                            props.getInRef(el);
+                        }
+                    }}
                     type="text"
                     // name={props.nameId}
                     // id={props.nameId}

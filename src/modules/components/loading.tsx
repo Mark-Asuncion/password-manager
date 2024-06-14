@@ -4,7 +4,7 @@ import { momentum } from 'ldrs';
 export function Loading() {
     momentum.register();
     return (
-        <div className="absolute w-max h-max top-[25%] left-0 right-0 mx-auto">
+        <div className="fixed w-max h-max top-1/2 left-1/2 translate-x-[-50%] translate-y-[-50%]">
             <l-momentum
                 size="75"
                 speed="1.1"

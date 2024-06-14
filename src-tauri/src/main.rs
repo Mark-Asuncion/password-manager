@@ -26,7 +26,8 @@ fn main() {
             state::add_account,
             state::get_accounts,
             state::append_account,
-            state::delete_account
+            state::delete_account,
+            utils::backup::create_archive_tar
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

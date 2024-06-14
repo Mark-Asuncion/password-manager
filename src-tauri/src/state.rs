@@ -45,6 +45,13 @@ impl MState {
         true
     }
 
+    pub fn _is_account_loaded(v: &Option<Accounts>) -> bool {
+        if let None = v {
+            return false;
+        }
+        true
+    }
+
     fn accs_push(&self, v: Account) {
         let accs = &mut (*self.accounts.lock().expect(error::ACQ_STATE_ACCOUNTS));
         let accs = accs.as_mut().unwrap();
@@ -57,14 +64,14 @@ impl MState {
         for acc in accs {
             if query.match_count(&acc) >= 2 {
                 acc.set_ignore_empty(update.to_account());
-                dbg!(&acc);
+                // dbg!(&acc);
                 return Some(())
             }
         }
         None
     }
 
-    fn accs_save(&self, path: &Path, bak_dir: PathBuf) -> io::Result<()> {
+    fn accs_save(&self, path: &Path, data_dir: PathBuf) -> io::Result<()> {
         let keyiv = &(*self.keyiv.lock().expect(error::ACQ_STATE_KEYIV));
         if keyiv.is_empty() {
             return Ok(());
@@ -72,14 +79,15 @@ impl MState {
         let accs = &mut (*self.accounts.lock().expect(error::ACQ_STATE_ACCOUNTS));
         let accs = accs.as_mut().unwrap();
         let accs_slice = accs.as_slice();
-        mcsv::write_csv(path, accs_slice, &keyiv, bak_dir)
+        mcsv::write_csv(path, accs_slice, &keyiv, data_dir)
     }
 
-    fn accs_load(&self, path: &Path) {
+    fn accs_load(&self, path: &Path) -> io::Result<()> {
         let keyiv = &(*self.keyiv.lock().expect(error::ACQ_STATE_KEYIV));
-        let accsl = mcsv::read_csv(path, &keyiv).unwrap_or_default();
+        let accsl = mcsv::read_csv(path, &keyiv)?;
         let accs = &mut (*self.accounts.lock().expect(error::ACQ_STATE_ACCOUNTS));
         *accs = Some(accsl);
+        Ok(())
     }
 
     fn accs_append(&self, path_file: &Path) -> io::Result<()> {
@@ -104,7 +112,16 @@ impl MState {
             new_accs.push(acc.clone());
         }
         *accs = new_accs;
-        dbg!(&accs);
+        // dbg!(&accs);
+    }
+
+    fn accs_clone(&self) -> Accounts {
+        let accs = &(*self.accounts.lock().expect(error::ACQ_STATE_ACCOUNTS));
+        if !MState::_is_account_loaded(accs) {
+            return vec![];
+        }
+        let accs = accs.as_ref().unwrap();
+        accs.clone()
     }
 }
 
@@ -159,7 +176,7 @@ pub fn save(handle: AppHandle, state: State<MState>) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn get_accounts(query: Option<QueryAccount>, handle: AppHandle, state: State<MState>) -> Vec<Account> {
+pub fn get_accounts(query: Option<QueryAccount>, handle: AppHandle, state: State<MState>) -> Accounts {
     let mut data_dir = handle.path_resolver()
         .app_data_dir()
         .expect(error::DATA_DIR_NOT_EXIST);
@@ -170,19 +187,22 @@ pub fn get_accounts(query: Option<QueryAccount>, handle: AppHandle, state: State
     }
 
     data_dir.push(FileNames::ACC_LIST);
-    if data_dir.exists() {
-        if !state.is_accounts_loaded() {
-            state.accs_load(&data_dir);
+    if !state.is_accounts_loaded() {
+        if let Err(e) = state.accs_load(&data_dir) {
+            dbg!(e);
+            return vec![];
         }
     }
-    let accs = &mut (*state.accounts.lock().expect(error::ACQ_STATE_ACCOUNTS));
-    let accs = accs.as_mut().unwrap();
+
+    let accs = state.accs_clone();
+
     if let None = query {
-        return accs.clone();
+        dbg!(&accs);
+        return accs;
     }
     let query = query.unwrap();
     let mut res = vec![];
-    for acc in accs {
+    for acc in accs.iter() {
         if query.find_count_readonly(&acc) != 0 {
             res.push(acc.clone());
         }
@@ -203,6 +223,9 @@ pub fn add_account(v: Account, state: State<MState>) {
 
 #[tauri::command]
 pub fn append_account(path_file: PathBuf, state: State<MState>) -> Result<(), String> {
+    if !path_file.exists() {
+        return Err(error::FILE_NOT_EXISTS.into())
+    }
     if let Err(e) = state.accs_append(&path_file) {
         dbg!(e);
         return Err(error::CSV_WRONG_FORMAT.into());

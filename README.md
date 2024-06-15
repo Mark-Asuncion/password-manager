@@ -1,7 +1,23 @@
-# Tauri + React + Typescript
+# Password Manager
+A simple manager for storing passwords
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+# Installation
+Check [release](https://github.com/Mark-Asuncion/password-manager/releases/tag/Release) for the pre-built application
 
-## Recommended IDE Setup
-
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+# Building
+## Requirements
+- Nodejs >= v20.10.0
+- Rust >= 1.75.0
+```bash
+# On the cloned folder install the dependencies
+npm i
+```
+# Build Development
+```bash
+cargo tauri dev
+```
+# Build Release
+```bash
+# check 'cargo tauri build --help' for more info about options
+cargo tauri build
+```

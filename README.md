@@ -1,6 +1,8 @@
 # Password Manager
 A simple manager for storing passwords
 
+![Sample Image](./sampleimage/example.png)
+
 # Installation
 Check [release](https://github.com/Mark-Asuncion/password-manager/releases/tag/Release) for the pre-built application
 
